@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
+from polyaxon_k8s import constants
 from polyaxon_k8s.exceptions import PolyaxonK8SError
 from polyaxon_k8s.logger import logger
 
@@ -63,8 +64,25 @@ class K8SManager(object):
                 logger.error("K8S error: {}".format(e))
                 if reraise:
                     raise PolyaxonK8SError(e)
-                return
+            else:
+                self.k8s_api.create_namespaced_config_map(self.namespace, body)
+                logger.debug('Config map `{}` was created'.format(name))
 
-            self.k8s_api.create_namespaced_config_map(self.namespace, body)
-            logger.debug('Config map `{}` was created'.format(name))
+    def delete_config_map(self, name, reraise=False):
+        config_map_found = False
+        try:
+            self.k8s_api.read_namespaced_config_map(name, self.namespace)
+            config_map_found = True
+            self.k8s_api.delete_namespaced_config_map(
+                name,
+                self.namespace,
+                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+            logger.debug('Config map `{}` Deleted'.format(name))
+        except ApiException as e:
+            if config_map_found:
+                logger.warning('Could not delete config map `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            else:
+                logger.debug('Config map `{}` was not found'.format(name))
 
