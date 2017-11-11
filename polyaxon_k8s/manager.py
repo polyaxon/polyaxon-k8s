@@ -100,7 +100,7 @@ class K8SManager(object):
             self.k8s_api.create_namespaced_service(self.namespace, data)
             logger.debug('Service `{}` was created'.format(name))
 
-    def create_or_update_service(self, name, data):
+    def create_or_update_pod(self, name, data):
         pod_found = False
         try:
             self.k8s_api.read_namespaced_pod(name, self.namespace)
