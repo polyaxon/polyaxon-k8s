@@ -33,7 +33,23 @@ class K8SManager(object):
             if reraise:
                 raise PolyaxonK8SError(e)
 
-    def get_nodes(self, reraise=False):
+    def _list_namespace_resource(self,
+                                 labels,
+                                 resource_api,
+                                 namespace=None,
+                                 reraise=False,
+                                 **kwargs):
+        namespace = namespace or self.namespace
+        try:
+            res = resource_api(namespace, label_selector=labels, **kwargs)
+            return [p for p in res.items]
+        except ApiException as e:
+            logger.error("K8S error: {}".format(e))
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return []
+
+    def list_nodes(self, reraise=False):
         try:
             res = self.k8s_api.list_node()
             return [p for p in res.items]
@@ -42,19 +58,31 @@ class K8SManager(object):
             if reraise:
                 raise PolyaxonK8SError(e)
 
-    def get_pods(self, labels, namespace=None, include_uninitialized=True, reraise=False):
-        namespace = namespace or self.namespace
-        try:
-            res = self.k8s_api.list_namespaced_pod(
-                namespace,
-                label_selector=labels,
-                include_uninitialized=include_uninitialized)
-            return [p for p in res.items]
-        except ApiException as e:
-            logger.error("K8S error: {}".format(e))
-            if reraise:
-                raise PolyaxonK8SError(e)
-            return []
+    def list_pods(self, labels, namespace=None, include_uninitialized=True, reraise=False):
+        return self._list_namespace_resource(labels=labels,
+                                             resource_api=self.k8s_api.list_namespaced_pod,
+                                             namespace=namespace,
+                                             reraise=reraise,
+                                             include_uninitialized=include_uninitialized)
+
+    def list_services(self, labels, namespace=None, reraise=False):
+        return self._list_namespace_resource(labels=labels,
+                                             resource_api=self.k8s_api.list_namespaced_service,
+                                             namespace=namespace,
+                                             reraise=reraise)
+
+    def list_deployments(self, labels, namespace=None, reraise=False):
+        return self._list_namespace_resource(
+            labels=labels,
+            resource_api=self.k8s_beta_api.list_namespaced_deployment,
+            namespace=namespace,
+            reraise=reraise)
+
+    def list_ingresses(self, labels, namespace=None, reraise=False):
+        return self._list_namespace_resource(labels=labels,
+                                             resource_api=self.k8s_beta_api.list_namespaced_ingress,
+                                             namespace=namespace,
+                                             reraise=reraise)
 
     def update_node_labels(self, node, labels, reraise=False):
         body = {'metadata': {'labels': labels}}
@@ -169,6 +197,23 @@ class K8SManager(object):
             self.k8s_api.create_namespaced_persistent_volume_claim(namespace, data)
             logger.debug('Volume claim `{}` was created'.format(name))
 
+    def create_or_update_ingress(self, name, data, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        service_found = False
+        try:
+            self.k8s_beta_api.read_namespaced_ingress(name, namespace)
+            service_found = True
+            logger.debug('An ingress with name `{}` was found'.format(name))
+            self.k8s_beta_api.patch_namespaced_ingress(name, namespace, data)
+            logger.debug('Ingress `{}` was patched'.format(name))
+        except ApiException as e:
+            if service_found:
+                logger.error('Could not create ingress `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            self.k8s_beta_api.create_namespaced_ingress(namespace, data)
+            logger.debug('ingress `{}` was created'.format(name))
+
     def delete_config_map(self, name, namespace=None, reraise=False):
         namespace = namespace or self.namespace
         config_map_found = False
@@ -203,14 +248,6 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
             else:
                 logger.debug('Service `{}` was not found'.format(name))
-
-    def delete_pods(self, labels, namespace=None, include_uninitialized=True, reraise=False):
-        pods = self.get_pods(labels=labels,
-                             namespace=namespace,
-                             include_uninitialized=include_uninitialized,
-                             reraise=reraise)
-        for pod in pods:
-            self.delete_pod(name=pod.metadata.name, namespace=namespace, reraise=reraise)
 
     def delete_pod(self, name, namespace=None, reraise=False):
         namespace = namespace or self.namespace
@@ -286,3 +323,52 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
             else:
                 logger.debug('Volume claim `{}` was not found'.format(name))
+
+    def delete_ingress(self, name, namespace, reraise=False):
+        namespace = namespace or self.namespace
+        deployment_found = False
+        try:
+            self.k8s_beta_api.read_namespaced_ingress(name, namespace)
+            deployment_found = True
+            self.k8s_beta_api.delete_namespaced_ingress(
+                name,
+                namespace,
+                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1_BETA1,
+                                       propagation_policy='Foreground'))
+            logger.debug('Ingress `{}` deleted'.format(name))
+        except ApiException as e:
+            if deployment_found:
+                logger.error('Could not delete Ingress `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            else:
+                logger.debug('Ingress `{}` was not found'.format(name))
+
+    def delete_pods(self, labels, namespace=None, include_uninitialized=True, reraise=False):
+        objs = self.list_pods(labels=labels,
+                              namespace=namespace,
+                              include_uninitialized=include_uninitialized,
+                              reraise=reraise)
+        for obj in objs:
+            self.delete_pod(name=obj.metadata.name, namespace=namespace, reraise=reraise)
+
+    def delete_services(self, labels, namespace=None, reraise=False):
+        objs = self.list_services(labels=labels,
+                                  namespace=namespace,
+                                  reraise=reraise)
+        for obj in objs:
+            self.delete_service(name=obj.metadata.name, namespace=namespace, reraise=reraise)
+
+    def delete_deployments(self, labels, namespace=None, reraise=False):
+        objs = self.list_deployments(labels=labels,
+                                     namespace=namespace,
+                                     reraise=reraise)
+        for obj in objs:
+            self.delete_deployment(name=obj.metadata.name, namespace=namespace, reraise=reraise)
+
+    def delete_ingresses(self, labels, namespace=None, reraise=False):
+        objs = self.list_services(labels=labels,
+                                  namespace=namespace,
+                                  reraise=reraise)
+        for obj in objs:
+            self.delete_ingress(name=obj.metadata.name, namespace=namespace, reraise=reraise)
