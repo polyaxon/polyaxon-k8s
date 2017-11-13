@@ -33,7 +33,7 @@ class K8SManager(object):
             if reraise:
                 raise PolyaxonK8SError(e)
 
-    def get_node_items(self, reraise=False):
+    def get_nodes(self, reraise=False):
         try:
             res = self.k8s_api.list_node()
             return [p for p in res.items]
@@ -41,6 +41,20 @@ class K8SManager(object):
             logger.error("K8S error: {}".format(e))
             if reraise:
                 raise PolyaxonK8SError(e)
+
+    def get_pods(self, labels, namespace=None, include_uninitialized=True, reraise=False):
+        namespace = namespace or self.namespace
+        try:
+            res = self.k8s_api.list_namespaced_pod(
+                namespace,
+                label_selector=labels,
+                include_uninitialized=include_uninitialized)
+            return [p for p in res.items]
+        except ApiException as e:
+            logger.error("K8S error: {}".format(e))
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return []
 
     def update_node_labels(self, node, labels, reraise=False):
         body = {'metadata': {'labels': labels}}
@@ -68,25 +82,6 @@ class K8SManager(object):
             else:
                 self.k8s_api.create_namespaced_config_map(namespace, body)
                 logger.debug('Config map `{}` was created'.format(name))
-
-    def delete_config_map(self, name, namespace=None, reraise=False):
-        namespace = namespace or self.namespace
-        config_map_found = False
-        try:
-            self.k8s_api.read_namespaced_config_map(name, namespace)
-            config_map_found = True
-            self.k8s_api.delete_namespaced_config_map(
-                name,
-                namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
-            logger.debug('Config map `{}` Deleted'.format(name))
-        except ApiException as e:
-            if config_map_found:
-                logger.error('Could not delete config map `{}`'.format(name))
-                if reraise:
-                    raise PolyaxonK8SError(e)
-            else:
-                logger.debug('Config map `{}` was not found'.format(name))
 
     def create_or_update_service(self, name, data, namespace=None, reraise=False):
         namespace = namespace or self.namespace
@@ -139,6 +134,60 @@ class K8SManager(object):
             self.k8s_beta_api.create_namespaced_deployment(namespace, data)
             logger.info('Deployment `{}` was created'.format(name))
 
+    def create_or_update_volume(self, name, data, reraise=False):
+        volume_found = False
+        try:
+            self.k8s_api.read_persistent_volume(name)
+            volume_found = True
+            logger.debug('A Persistent volume with name `{}` was found'.format(name))
+            self.k8s_api.patch_persistent_volume(name, data)
+            logger.debug('Persistent volume `{}` was patched'.format(name))
+        except ApiException as e:
+            if volume_found:
+                logger.error('Could not create volume `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            self.k8s_api.create_persistent_volume(data)
+            logger.debug('Persistent volume `{}` was created'.format(name))
+
+    def create_or_update_volume_claim(self, name, data, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        volume_claim_found = False
+        try:
+            self.k8s_api.read_namespaced_persistent_volume_claim(name, namespace)
+            volume_claim_found = True
+            logger.debug('A volume claim with name `{}` was found'.format(name))
+            self.k8s_api.patch_namespaced_persistent_volume_claim(name,
+                                                                  namespace,
+                                                                  data)
+            logger.debug('Volume claim `{}` was patched'.format(name))
+        except ApiException as e:
+            if volume_claim_found:
+                logger.error('Could not create volume claim `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            self.k8s_api.create_namespaced_persistent_volume_claim(namespace, data)
+            logger.debug('Volume claim `{}` was created'.format(name))
+
+    def delete_config_map(self, name, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        config_map_found = False
+        try:
+            self.k8s_api.read_namespaced_config_map(name, namespace)
+            config_map_found = True
+            self.k8s_api.delete_namespaced_config_map(
+                name,
+                namespace,
+                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+            logger.debug('Config map `{}` Deleted'.format(name))
+        except ApiException as e:
+            if config_map_found:
+                logger.error('Could not delete config map `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            else:
+                logger.debug('Config map `{}` was not found'.format(name))
+
     def delete_service(self, name, namespace=None, reraise=False):
         namespace = namespace or self.namespace
         service_found = False
@@ -154,6 +203,14 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
             else:
                 logger.debug('Service `{}` was not found'.format(name))
+
+    def delete_pods(self, labels, namespace=None, include_uninitialized=True, reraise=False):
+        pods = self.get_pods(labels=labels,
+                             namespace=namespace,
+                             include_uninitialized=include_uninitialized,
+                             reraise=reraise)
+        for pod in pods:
+            self.delete_pod(name=pod.metadata.name, namespace=namespace, reraise=reraise)
 
     def delete_pod(self, name, namespace=None, reraise=False):
         namespace = namespace or self.namespace
@@ -193,41 +250,6 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
             else:
                 logger.debug('Deployment `{}` was not found'.format(name))
-
-    def create_or_update_volume(self, name, data, reraise=False):
-        volume_found = False
-        try:
-            self.k8s_api.read_persistent_volume(name)
-            volume_found = True
-            logger.debug('A Persistent volume with name `{}` was found'.format(name))
-            self.k8s_api.patch_persistent_volume(name, data)
-            logger.debug('Persistent volume `{}` was patched'.format(name))
-        except ApiException as e:
-            if volume_found:
-                logger.error('Could not create volume `{}`'.format(name))
-                if reraise:
-                    raise PolyaxonK8SError(e)
-            self.k8s_api.create_persistent_volume(data)
-            logger.debug('Persistent volume `{}` was created'.format(name))
-
-    def create_or_update_volume_claim(self, name, data, namespace=None, reraise=False):
-        namespace = namespace or self.namespace
-        volume_claim_found = False
-        try:
-            self.k8s_api.read_namespaced_persistent_volume_claim(name, namespace)
-            volume_claim_found = True
-            logger.debug('A volume claim with name `{}` was found'.format(name))
-            self.k8s_api.patch_namespaced_persistent_volume_claim(name,
-                                                                  namespace,
-                                                                  data)
-            logger.debug('Volume claim `{}` was patched'.format(name))
-        except ApiException as e:
-            if volume_claim_found:
-                logger.error('Could not create volume claim `{}`'.format(name))
-                if reraise:
-                    raise PolyaxonK8SError(e)
-            self.k8s_api.create_namespaced_persistent_volume_claim(namespace, data)
-            logger.debug('Volume claim `{}` was created'.format(name))
 
     def delete_volume(self, name, reraise=False):
         volume_found = False
