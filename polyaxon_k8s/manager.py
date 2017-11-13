@@ -214,6 +214,68 @@ class K8SManager(object):
             self.k8s_beta_api.create_namespaced_ingress(namespace, data)
             logger.debug('ingress `{}` was created'.format(name))
 
+    def get_config_map(self, name, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        try:
+            return self.k8s_api.read_namespaced_config_map(name, namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
+    def get_service(self, name, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        try:
+            return self.k8s_api.read_namespaced_service(name, namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
+    def get_pod(self, name, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        try:
+            return self.k8s_api.read_namespaced_pod(name, namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
+    def get_deployment(self, name, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        try:
+            return self.k8s_beta_api.read_namespaced_deployment(name, namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
+    def get_volume(self, name, reraise=False):
+        try:
+            return self.k8s_api.read_persistent_volume(name)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
+    def get_volume_claim(self, name, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        try:
+            assert self.k8s_api.read_namespaced_persistent_volume_claim(name, namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
+    def create_or_update_ingress(self, name, namespace=None, reraise=False):
+        namespace = namespace or self.namespace
+        try:
+            return self.k8s_beta_api.read_namespaced_ingress(name, namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
     def delete_config_map(self, name, namespace=None, reraise=False):
         namespace = namespace or self.namespace
         config_map_found = False
