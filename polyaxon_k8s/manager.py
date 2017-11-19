@@ -267,7 +267,7 @@ class K8SManager(object):
 
     def get_volume_claim(self, name, reraise=False):
         try:
-            assert self.k8s_api.read_namespaced_persistent_volume_claim(name, self.namespace)
+            return self.k8s_api.read_namespaced_persistent_volume_claim(name, self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
