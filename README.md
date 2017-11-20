@@ -5,4 +5,4 @@
 
 # Polyaxon-k8s
 
-Polyaxon Kubernetes mangers, utils and resources.
+Polyaxon Kubernetes managers, utils and resources.

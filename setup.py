@@ -16,10 +16,10 @@ class PyTest(TestCommand):
         errcode = pytest.main(self.test_args)
         sys.exit(errcode)
 
+
 setup(name='polyaxon-k8s',
-      version='0.0.1',
-      description='Polyaxon resources and charts for running and '
-                  'monitoring experiments on kubernetes clusters.',
+      version='0.0.11',
+      description='Polyaxon Kubernetes managers, utils and resources.',
       maintainer='Mourad Mourafiq',
       maintainer_email='mouradmourafiq@gmail.com',
       author='Mourad Mourafiq',
