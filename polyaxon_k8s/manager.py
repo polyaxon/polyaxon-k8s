@@ -30,7 +30,7 @@ class K8SManager(object):
         return self._namespace
 
     def set_namespace(self, namespace):
-        self.namespace = namespace
+        self._namespace = namespace
 
     def get_version(self, reraise=False):
         try:

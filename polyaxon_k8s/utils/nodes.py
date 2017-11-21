@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-
-UNKNOWN = 'UNKNOWN'
+from polyaxon_k8s import constants
 
 
 class NodeLifeCycle(object):
-    UNKNOWN = UNKNOWN
+    UNKNOWN = constants.UNKNOWN
     READY = 'Ready'
     NOT_READY = 'NotReady'
     DELETED = 'Deleted'
@@ -74,7 +73,7 @@ def get_role(node):
 
 def get_docker_version(node):
     cri = node.status.node_info.container_runtime_version
-    return cri[len('docker://'):] if cri.startswith('docker://') else UNKNOWN
+    return cri[len('docker://'):] if cri.startswith('docker://') else constants.UNKNOWN
 
 
 def is_schedulable(node):

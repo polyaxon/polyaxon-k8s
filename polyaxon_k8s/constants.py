@@ -12,6 +12,27 @@ K8S_DEPLOYMENT_KIND = 'Deployment'
 K8S_SERVICE_KIND = 'Service'
 K8S_INGRESS_KIND = 'Ingress'
 
+UNKNOWN = 'UNKNOWN'
+
+
+class EventTypes(object):
+    ADDED = 'ADDED'
+    MODIFIED = 'MODIFIED'
+    DELETED = 'DELETED'
+    ERROR = 'ERROR'
+
+
+class ContainerStatuses(object):
+    RUNNING = 'running'
+    WAITING = 'waiting'
+    TERMINATED = 'terminated'
+
+
+class PodConditions(object):
+    READY = 'Ready'
+    INITIALIZED = 'Initialized'
+    SCHEDULED = 'PodScheduled'
+
 
 class PodLifeCycle(object):
     RUNNING = 'Running'
@@ -19,6 +40,7 @@ class PodLifeCycle(object):
     CONTAINER_CREATING = 'ContainerCreating'
     SUCCEEDED = 'Succeeded'
     FAILED = 'Failed'
+    UNKNOWN = UNKNOWN
 
     CHOICES = (
         (RUNNING, RUNNING),
@@ -69,4 +91,3 @@ class JobLifeCycle(object):
     @classmethod
     def is_done(cls, status):
         return status in cls.DONE_STATUS
-
