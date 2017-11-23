@@ -55,38 +55,36 @@ class JobLifeCycle(object):
     CREATED = 'Created'
     BUILDING = 'Building'
     PENDING = 'Pending'
-    STARTING = 'Starting'
     RUNNING = 'Running'
-    FINISHED = 'Finished'
     PAUSING = 'Pausing'
     SUCCEEDED = 'Succeeded'
     FAILED = 'Failed'
-    KILLED = 'killed'
+    DELETED = 'Deleted'
+    UNKNOWN = UNKNOWN
 
     CHOICES = (
         (CREATED, CREATED),
         (BUILDING, BUILDING),
         (PENDING, PENDING),
-        (STARTING, STARTING),
         (RUNNING, RUNNING),
         (PAUSING, PAUSING),
         (SUCCEEDED, SUCCEEDED),
-        (FINISHED, FINISHED),
         (FAILED, FAILED),
-        (KILLED, KILLED),
+        (DELETED, DELETED),
+        (UNKNOWN, UNKNOWN),
     )
 
-    RUNNING_STATUS = [PENDING, STARTING, RUNNING]
-    KILLABLE_STATUS = [STARTING, BUILDING, PENDING, PAUSING, RUNNING]
-    DONE_STATUS = [FINISHED, FINISHED, KILLED, SUCCEEDED]
+    RUNNING_STATUS = [PENDING, RUNNING]
+    DELETABLE_STATUS = [BUILDING, PENDING, PAUSING, RUNNING]
+    DONE_STATUS = [FAILED, DELETED, SUCCEEDED]
 
     @classmethod
     def is_running(cls, status):
         return status in cls.RUNNING_STATUS
 
     @classmethod
-    def is_killable(cls, status):
-        return status in cls.KILLABLE_STATUS
+    def is_deletable(cls, status):
+        return status in cls.DELETABLE_STATUS
 
     @classmethod
     def is_done(cls, status):
