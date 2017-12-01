@@ -4,48 +4,13 @@ from __future__ import absolute_import, division, print_function
 from polyaxon_k8s import constants
 
 
-class NodeLifeCycle(object):
-    UNKNOWN = constants.UNKNOWN
-    READY = 'Ready'
-    NOT_READY = 'NotReady'
-    DELETED = 'Deleted'
-
-    CHOICES = (
-        (UNKNOWN, UNKNOWN),
-        (READY, READY),
-        (NOT_READY, NOT_READY),
-        (DELETED, DELETED)
-    )
-
-
-class NodeRoles(object):
-    MASTER = 'Master'
-    WORKER = 'Worker'
-
-    CHOICES = (
-        (MASTER, MASTER),
-        (WORKER, WORKER)
-    )
-
-
-def to_bytes(size_str):
-    unit_multiplier = {
-        'Ki': 1024,
-        'Mi': 1024 ** 2,
-        'Gi': 1024 ** 3,
-        'Ti': 1024 ** 4
-    }
-
-    return int(size_str[:-2]) * unit_multiplier.get(size_str[-2:], 1)
-
-
 def get_status(node):
     status = [c.status for c in node.status.conditions if c.tyep == 'Ready'][0]
     if status == 'True':
-        return NodeLifeCycle.READY
+        return constants.NodeLifeCycle.READY
     if status == 'FALSE':
-        return NodeLifeCycle.NOT_READY
-    return NodeLifeCycle.UNKNOWN
+        return constants.NodeLifeCycle.NOT_READY
+    return constants.NodeLifeCycle.UNKNOWN
 
 
 def get_n_gpus(node):
@@ -57,7 +22,7 @@ def get_n_cpus(node):
 
 
 def get_memory_size(node):
-    return to_bytes(node.status.allocatable['memory'])
+    return constants.to_bytes(node.status.allocatable['memory'])
 
 
 def is_master(node):
@@ -68,7 +33,7 @@ def is_master(node):
 
 
 def get_role(node):
-    return NodeRoles.MASTER if is_master(node) else NodeRoles.WORKER
+    return constants.NodeRoles.MASTER if is_master(node) else constants.NodeRoles.WORKER
 
 
 def get_docker_version(node):
@@ -83,6 +48,10 @@ def is_schedulable(node):
     for t in node.spec.taints:
         if t.key == 'node-role.kubernetes.io/master' and t.effect == 'NoSchedule':
             return False
+
+
+def get_schedulable_state(node):
+    return not node.spec.unschedulable
 
 
 def get_hostname(node):
