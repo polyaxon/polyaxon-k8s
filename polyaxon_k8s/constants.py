@@ -74,8 +74,7 @@ class JobLifeCycle(object):
         (UNKNOWN, UNKNOWN),
     )
 
-    RUNNING_STATUS = [PENDING, RUNNING]
-    DELETABLE_STATUS = [BUILDING, PENDING, PAUSING, RUNNING]
+    RUNNING_STATUS = [BUILDING, PENDING, RUNNING]
     DONE_STATUS = [FAILED, DELETED, SUCCEEDED]
 
     @classmethod
@@ -84,7 +83,7 @@ class JobLifeCycle(object):
 
     @classmethod
     def is_deletable(cls, status):
-        return status in cls.DELETABLE_STATUS
+        return not cls.is_done(status)
 
     @classmethod
     def is_done(cls, status):
