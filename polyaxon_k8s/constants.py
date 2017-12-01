@@ -88,3 +88,21 @@ class JobLifeCycle(object):
     @classmethod
     def is_done(cls, status):
         return status in cls.DONE_STATUS
+
+
+class ExperimentLifeCycle(JobLifeCycle):
+    SCHEDULED = 'Scheduled'
+    STARTING = 'Starting'
+
+    CHOICES = (
+        (JobLifeCycle.CREATED, JobLifeCycle.CREATED),  # XP created to be executed
+        (SCHEDULED, SCHEDULED),  # XP scheduled to be started
+        (JobLifeCycle.BUILDING, JobLifeCycle.BUILDING),  # XP scheduled to be started
+        (STARTING, STARTING),  # one of the jobs is still not running
+        (JobLifeCycle.PENDING, JobLifeCycle.PENDING),  # one of the jobs is still pending
+        (JobLifeCycle.RUNNING, JobLifeCycle.RUNNING),  # one of the jobs is still running
+        (JobLifeCycle.SUCCEEDED, JobLifeCycle.SUCCEEDED),  # master and workers have finished
+        (JobLifeCycle.FAILED, JobLifeCycle.FAILED),  # one of the jobs has failed
+        (JobLifeCycle.DELETED, JobLifeCycle.DELETED),  # XP was killed
+        (JobLifeCycle.UNKNOWN, JobLifeCycle.UNKNOWN),  # XP was killed
+    )
