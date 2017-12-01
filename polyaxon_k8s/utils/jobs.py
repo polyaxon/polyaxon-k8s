@@ -58,9 +58,9 @@ def get_job_state(raw_event, job_container_name, experiment_type_label):
     if pod_state['labels']['type'] != experiment_type_label:  # 2 type: core and experiment
         return
 
-    status, reason = get_job_status(pod_state, job_container_name)
+    status, message = get_job_status(pod_state, job_container_name)
     return {
-        'pod_state': pod_state,
         'status': status,
-        'reason': reason
+        'message': message,
+        'details': pod_state,
     }
