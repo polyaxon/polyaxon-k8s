@@ -175,6 +175,7 @@ class ExperimentLifeCycle(object):
         (UNKNOWN, UNKNOWN),
     )
 
+    RUNNING_STATUS = [STARTING, RUNNING]
     DONE_STATUS = [FAILED, DELETED, SUCCEEDED]
 
     @staticmethod
@@ -200,6 +201,10 @@ class ExperimentLifeCycle(object):
     @staticmethod
     def is_deletable(job_statuses):
         return all([True for job_status in job_statuses if JobLifeCycle.is_deletable(job_status)])
+
+    @classmethod
+    def is_running(cls, status):
+        return status in cls.RUNNING_STATUS
 
     @classmethod
     def is_done(cls, status):
