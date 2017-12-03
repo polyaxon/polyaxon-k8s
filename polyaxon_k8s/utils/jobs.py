@@ -39,8 +39,9 @@ def get_job_status(pod_state, job_container_name):
         if job_container_status_terminated['reason'] == 'Completed':
             return JobLifeCycle.SUCCEEDED
         if job_container_status_terminated['reason'] == 'Error':
-            return JobLifeCycle.FAILED, (job_container_status_terminated['message'],
-                                         job_container_status_terminated['exit_code'])
+            return JobLifeCycle.FAILED, 'exist-code({})-message({})'.format(
+                job_container_status_terminated['exit_code'],
+                job_container_status_terminated['message'])
 
     job_container_status_waiting = job_container_status['state'][ContainerStatuses.WAITING]
     if job_container_status_waiting:
