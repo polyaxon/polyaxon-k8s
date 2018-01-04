@@ -18,7 +18,7 @@ class K8SManager(object):
                 config.load_kube_config()
             api_client = None
         else:
-            api_client = client.api_client.ApiClient(config=k8s_config)
+            api_client = client.api_client.ApiClient(configuration=k8s_config)
 
         self.k8s_api = client.CoreV1Api(api_client)
         self.k8s_beta_api = client.ExtensionsV1beta1Api(api_client)

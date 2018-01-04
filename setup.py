@@ -41,7 +41,7 @@ setup(name='polyaxon-k8s',
           'kubernetes',
       ],
       install_requires=[
-          'kubernetes==3.0.0',
+          'kubernetes==4.0.0',
           'PyYAML==3.12',
           'six==1.11.0',
       ],
