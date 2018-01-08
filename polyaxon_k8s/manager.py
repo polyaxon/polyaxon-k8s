@@ -109,6 +109,25 @@ class K8SManager(object):
                 logger.debug('Config map `{}` was created'.format(name))
         return resp, not found
 
+    def create_or_update_secret(self, name, body, reraise=False):
+        found = False
+        try:
+            self.k8s_api.read_namespaced_secret(name, self.namespace)
+            found = True
+            logger.debug('A secret with name `{}` was found'.format(name))
+            resp = self.k8s_api.patch_namespaced_secret(name, self.namespace, body)
+            logger.debug('Secret `{}` was patched'.format(name))
+        except ApiException as e:
+            if found:  # Secret was found but could not update, we need to raise
+                logger.error("K8S error: {}".format(e))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+                resp = None
+            else:
+                resp = self.k8s_api.create_namespaced_secret(self.namespace, body)
+                logger.debug('Secret `{}` was created'.format(name))
+        return resp, not found
+
     def create_or_update_service(self, name, data, reraise=False):
         found = False
         try:
@@ -233,6 +252,14 @@ class K8SManager(object):
                 raise PolyaxonK8SError(e)
             return None
 
+    def get_secret(self, name, reraise=False):
+        try:
+            return self.k8s_api.read_namespaced_secret(name, self.namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
     def get_service(self, name, reraise=False):
         try:
             return self.k8s_api.read_namespaced_service(name, self.namespace)
@@ -298,6 +325,24 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
             else:
                 logger.debug('Config map `{}` was not found'.format(name))
+
+    def delete_secret(self, name, reraise=False):
+        found = False
+        try:
+            self.k8s_api.read_namespaced_secret(name, self.namespace)
+            found = True
+            self.k8s_api.delete_namespaced_secret(
+                name,
+                self.namespace,
+                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+            logger.debug('secret `{}` Deleted'.format(name))
+        except ApiException as e:
+            if found:
+                logger.error('Could not delete secret `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            else:
+                logger.debug('secret `{}` was not found'.format(name))
 
     def delete_service(self, name, reraise=False):
         found = False
