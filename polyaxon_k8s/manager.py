@@ -58,6 +58,7 @@ class K8SManager(object):
             logger.error("K8S error: {}".format(e))
             if reraise:
                 raise PolyaxonK8SError(e)
+            return []
 
     def list_pods(self, labels, include_uninitialized=True, reraise=False):
         return self._list_namespace_resource(labels=labels,
