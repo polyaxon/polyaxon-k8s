@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -111,3 +112,4 @@ client/css/
 client/polyaxon/**/*.js
 client/polyaxon/**/*.js.map
 /examples/polyaxon-logs/
+lastfailed
