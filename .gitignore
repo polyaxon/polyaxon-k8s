@@ -1,6 +1,6 @@
+.pytest_cache/
 # Byte-compiled / optimized / DLL files
 __pycache__/
-.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -24,6 +24,7 @@ lib64/
 parts/
 sdist/
 var/
+public/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -81,8 +82,11 @@ target/
 # pyenv
 .python-version
 
+# locals
+local.py
+
 # celery beat schedule file
-celerybeat-schedule
+celerybeat-schedule*
 celeryev.pid
 celeryd*pid
 celeryd*log
@@ -97,13 +101,18 @@ ENV/
 # data
 big_data/
 examples/data/
+data/
+
+# environment vars
+polyaxon/polyaxon/env_vars/local.json
 
 # project
+logs/*
 setup.log
-static/
 reports/
-logs/
 media/
+static/debug_toolbar
+static/rest_framework
 
 # npm modules and transpiled typescript files
 client/dist/
@@ -111,5 +120,8 @@ client/node_modules/
 client/css/
 client/polyaxon/**/*.js
 client/polyaxon/**/*.js.map
+client/npm-debug.log
 /examples/polyaxon-logs/
+# don't ignore static dist
+!/static/dist
 lastfailed

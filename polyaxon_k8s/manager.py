@@ -350,7 +350,10 @@ class K8SManager(object):
         try:
             self.k8s_api.read_namespaced_service(name, self.namespace)
             found = True
-            self.k8s_api.delete_namespaced_service(name, self.namespace)
+            self.k8s_api.delete_namespaced_service(
+                name,
+                self.namespace,
+                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
             logger.debug('Service `{}` deleted'.format(name))
         except ApiException as e:
             if found:
