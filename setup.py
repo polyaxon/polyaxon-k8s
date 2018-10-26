@@ -18,12 +18,12 @@ class PyTest(TestCommand):
 
 
 setup(name='polyaxon-k8s',
-      version='0.2.8',
+      version='0.2.9',
       description='Polyaxon Kubernetes managers, utils, and resources.',
       maintainer='Mourad Mourafiq',
-      maintainer_email='mouradmourafiq@gmail.com',
+      maintainer_email='mourad@polyaxon.com',
       author='Mourad Mourafiq',
-      author_email='mouradmourafiq@gmail.com',
+      author_email='mourad@polyaxon.com',
       url='https://github.com/polyaxon/polyaxon-k8s',
       license='MIT',
       platforms='any',
