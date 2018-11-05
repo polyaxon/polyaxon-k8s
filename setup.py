@@ -18,7 +18,7 @@ class PyTest(TestCommand):
 
 
 setup(name='polyaxon-k8s',
-      version='0.2.9',
+      version='0.3.0',
       description='Polyaxon Kubernetes managers, utils, and resources.',
       maintainer='Mourad Mourafiq',
       maintainer_email='mourad@polyaxon.com',
