@@ -43,7 +43,7 @@ setup(name='polyaxon-k8s',
       install_requires=[
           'kubernetes==7.0.0',
           'PyYAML==3.13',
-          'six==1.11.0',
+          'six==1.12.0',
       ],
       classifiers=[
           'Programming Language :: Python',
