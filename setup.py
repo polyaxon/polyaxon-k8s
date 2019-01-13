@@ -5,6 +5,11 @@ from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 
+def read_readme():
+    with open('README.md') as f:
+        return f.read()
+
+
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
@@ -18,8 +23,9 @@ class PyTest(TestCommand):
 
 
 setup(name='polyaxon-k8s',
-      version='0.3.6',
+      version='0.3.7',
       description='Polyaxon Kubernetes managers, utils, and resources.',
+      long_description=read_readme(),
       maintainer='Mourad Mourafiq',
       maintainer_email='mourad@polyaxon.com',
       author='Mourad Mourafiq',
