@@ -22,6 +22,7 @@ class K8SManager(object):
 
         self.k8s_api = client.CoreV1Api(api_client)
         self.k8s_beta_api = client.ExtensionsV1beta1Api(api_client)
+        self.k8s_custom_object_api = client.CustomObjectsApi()
         self.k8s_version_api = client.VersionApi(api_client)
         self._namespace = namespace
 
@@ -42,7 +43,7 @@ class K8SManager(object):
 
     def _list_namespace_resource(self, labels, resource_api, reraise=False, **kwargs):
         try:
-            res = resource_api(self.namespace, label_selector=labels, **kwargs)
+            res = resource_api(namespace=self.namespace, label_selector=labels, **kwargs)
             return [p for p in res.items]
         except ApiException as e:
             logger.error("K8S error: {}".format(e))
@@ -66,6 +67,22 @@ class K8SManager(object):
                                              reraise=reraise,
                                              include_uninitialized=include_uninitialized)
 
+    def list_custom_objects(self,
+                            labels,
+                            group,
+                            version,
+                            plural,
+                            include_uninitialized=True,
+                            reraise=False):
+        return self._list_namespace_resource(
+            labels=labels,
+            resource_api=self.k8s_custom_object_api.list_namespaced_custom_object,
+            reraise=reraise,
+            include_uninitialized=include_uninitialized,
+            group=group,
+            version=version,
+            plural=plural)
+
     def list_services(self, labels, reraise=False):
         return self._list_namespace_resource(labels=labels,
                                              resource_api=self.k8s_api.list_namespaced_service,
@@ -85,7 +102,7 @@ class K8SManager(object):
     def update_node_labels(self, node, labels, reraise=False):
         body = {'metadata': {'labels': labels}, 'namespace': self.namespace}
         try:
-            return self.k8s_api.patch_node(node, body=body)
+            return self.k8s_api.patch_node(name=node, body=body)
         except ApiException as e:
             logger.error("K8S error: {}".format(e))
             if reraise:
@@ -94,10 +111,12 @@ class K8SManager(object):
     def create_or_update_config_map(self, name, body, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_config_map(name, self.namespace)
+            self.k8s_api.read_namespaced_config_map(name=name, namespace=self.namespace)
             found = True
             logger.debug('A config map with name `{}` was found'.format(name))
-            resp = self.k8s_api.patch_namespaced_config_map(name, self.namespace, body)
+            resp = self.k8s_api.patch_namespaced_config_map(name=name,
+                                                            namespace=self.namespace,
+                                                            body=body)
             logger.debug('Config map `{}` was patched'.format(name))
         except ApiException as e:
             if found:  # Config map was found but could not update, we need to raise
@@ -106,17 +125,20 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_api.create_namespaced_config_map(self.namespace, body)
+                resp = self.k8s_api.create_namespaced_config_map(namespace=self.namespace,
+                                                                 body=body)
                 logger.debug('Config map `{}` was created'.format(name))
         return resp, not found
 
     def create_or_update_secret(self, name, body, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_secret(name, self.namespace)
+            self.k8s_api.read_namespaced_secret(name=name, namespace=self.namespace)
             found = True
             logger.debug('A secret with name `{}` was found'.format(name))
-            resp = self.k8s_api.patch_namespaced_secret(name, self.namespace, body)
+            resp = self.k8s_api.patch_namespaced_secret(name=name,
+                                                        namespace=self.namespace,
+                                                        body=body)
             logger.debug('Secret `{}` was patched'.format(name))
         except ApiException as e:
             if found:  # Secret was found but could not update, we need to raise
@@ -125,17 +147,20 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_api.create_namespaced_secret(self.namespace, body)
+                resp = self.k8s_api.create_namespaced_secret(namespace=self.namespace,
+                                                             body=body)
                 logger.debug('Secret `{}` was created'.format(name))
         return resp, not found
 
     def create_or_update_service(self, name, data, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_service(name, self.namespace)
+            self.k8s_api.read_namespaced_service(name=name, namespace=self.namespace)
             found = True
             logger.debug('A service with name `{}` was found'.format(name))
-            resp = self.k8s_api.patch_namespaced_service(name, self.namespace, data)
+            resp = self.k8s_api.patch_namespaced_service(name=name,
+                                                         namespace=self.namespace,
+                                                         body=data)
             logger.debug('Service `{}` was patched'.format(name))
         except ApiException as e:
             if found:
@@ -144,17 +169,20 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_api.create_namespaced_service(self.namespace, data)
+                resp = self.k8s_api.create_namespaced_service(namespace=self.namespace,
+                                                              body=data)
                 logger.debug('Service `{}` was created'.format(name))
         return resp, not found
 
     def create_or_update_pod(self, name, data, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_pod(name, self.namespace)
+            self.k8s_api.read_namespaced_pod(name=name, namespace=self.namespace)
             found = True
             logger.debug('A pod with name `{}` was found'.format(name))
-            resp = self.k8s_api.patch_namespaced_pod(name, self.namespace, data)
+            resp = self.k8s_api.patch_namespaced_pod(name=name,
+                                                     namespace=self.namespace,
+                                                     body=data)
             logger.debug('Pod `{}` was patched'.format(name))
         except ApiException as e:
             if found:
@@ -163,17 +191,54 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_api.create_namespaced_pod(self.namespace, data)
+                resp = self.k8s_api.create_namespaced_pod(namespace=self.namespace, body=data)
                 logger.debug('Pod `{}` was created'.format(name))
+        return resp, not found
+
+    def create_or_update_custom_object(self, name, group, version, plural, data, reraise=False):
+        found = False
+        try:
+            self.k8s_custom_object_api.get_namespaced_custom_object(name=name,
+                                                                    group=group,
+                                                                    version=version,
+                                                                    plural=plural,
+                                                                    namespace=self.namespace)
+            found = True
+            logger.debug('A custom object with name `{}` was found'.format(name))
+            resp = self.k8s_custom_object_api.patch_namespaced_custom_object(
+                name=name,
+                group=group,
+                version=version,
+                plural=plural,
+                namespace=self.namespace,
+                body=data)
+            logger.debug('Custom object `{}` was patched'.format(name))
+        except ApiException as e:
+            if found:
+                logger.error('Could not create custom object `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+                resp = None
+            else:
+                resp = self.k8s_custom_object_api.create_namespaced_custom_object(
+                    group=group,
+                    version=version,
+                    plural=plural,
+                    namespace=self.namespace,
+                    body=data)
+                logger.debug('Custom object `{}` was created'.format(name))
         return resp, not found
 
     def create_or_update_deployment(self, name, data, reraise=False):
         found = False
         try:
-            self.k8s_beta_api.read_namespaced_deployment(name, self.namespace)
+            self.k8s_beta_api.read_namespaced_deployment(name=name,
+                                                         namespace=self.namespace)
             found = True
             logger.info('A deployment with name `{}` was found'.format(name))
-            resp = self.k8s_beta_api.patch_namespaced_deployment(name, self.namespace, data)
+            resp = self.k8s_beta_api.patch_namespaced_deployment(name=name,
+                                                                 namespace=self.namespace,
+                                                                 body=data)
             logger.info('Deployment `{}` was patched'.format(name))
         except ApiException as e:
             if found:
@@ -182,17 +247,18 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_beta_api.create_namespaced_deployment(self.namespace, data)
+                resp = self.k8s_beta_api.create_namespaced_deployment(namespace=self.namespace,
+                                                                      body=data)
                 logger.info('Deployment `{}` was created'.format(name))
         return resp, not found
 
     def create_or_update_volume(self, name, data, reraise=False):
         found = False
         try:
-            self.k8s_api.read_persistent_volume(name)
+            self.k8s_api.read_persistent_volume(name=name)
             found = True
             logger.debug('A Persistent volume with name `{}` was found'.format(name))
-            resp = self.k8s_api.patch_persistent_volume(name, data)
+            resp = self.k8s_api.patch_persistent_volume(name=name, body=data)
             logger.debug('Persistent volume `{}` was patched'.format(name))
         except ApiException as e:
             if found:
@@ -201,19 +267,20 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_api.create_persistent_volume(data)
+                resp = self.k8s_api.create_persistent_volume(body=data)
                 logger.debug('Persistent volume `{}` was created'.format(name))
         return resp, not found
 
     def create_or_update_volume_claim(self, name, data, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_persistent_volume_claim(name, self.namespace)
+            self.k8s_api.read_namespaced_persistent_volume_claim(name=name,
+                                                                 namespace=self.namespace)
             found = True
             logger.debug('A volume claim with name `{}` was found'.format(name))
-            resp = self.k8s_api.patch_namespaced_persistent_volume_claim(name,
-                                                                         self.namespace,
-                                                                         data)
+            resp = self.k8s_api.patch_namespaced_persistent_volume_claim(name=name,
+                                                                         namespace=self.namespace,
+                                                                         body=data)
             logger.debug('Volume claim `{}` was patched'.format(name))
         except ApiException as e:
             if found:
@@ -222,17 +289,20 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_api.create_namespaced_persistent_volume_claim(self.namespace, data)
+                resp = self.k8s_api.create_namespaced_persistent_volume_claim(
+                    namespace=self.namespace, body=data)
                 logger.debug('Volume claim `{}` was created'.format(name))
         return resp, not found
 
     def create_or_update_ingress(self, name, data, reraise=False):
         found = False
         try:
-            self.k8s_beta_api.read_namespaced_ingress(name, self.namespace)
+            self.k8s_beta_api.read_namespaced_ingress(name=name, namespace=self.namespace)
             found = True
             logger.debug('An ingress with name `{}` was found'.format(name))
-            resp = self.k8s_beta_api.patch_namespaced_ingress(name, self.namespace, data)
+            resp = self.k8s_beta_api.patch_namespaced_ingress(name=name,
+                                                              namespace=self.namespace,
+                                                              body=data)
             logger.debug('Ingress `{}` was patched'.format(name))
         except ApiException as e:
             if found:
@@ -241,13 +311,15 @@ class K8SManager(object):
                     raise PolyaxonK8SError(e)
                 resp = None
             else:
-                resp = self.k8s_beta_api.create_namespaced_ingress(self.namespace, data)
+                resp = self.k8s_beta_api.create_namespaced_ingress(namespace=self.namespace,
+                                                                   body=data)
                 logger.debug('ingress `{}` was created'.format(name))
         return resp, not found
 
     def get_config_map(self, name, reraise=False):
         try:
-            return self.k8s_api.read_namespaced_config_map(name, self.namespace)
+            return self.k8s_api.read_namespaced_config_map(name=name,
+                                                           namespace=self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -255,7 +327,7 @@ class K8SManager(object):
 
     def get_secret(self, name, reraise=False):
         try:
-            return self.k8s_api.read_namespaced_secret(name, self.namespace)
+            return self.k8s_api.read_namespaced_secret(name=name, namespace=self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -263,7 +335,7 @@ class K8SManager(object):
 
     def get_service(self, name, reraise=False):
         try:
-            return self.k8s_api.read_namespaced_service(name, self.namespace)
+            return self.k8s_api.read_namespaced_service(name=name, namespace=self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -271,7 +343,19 @@ class K8SManager(object):
 
     def get_pod(self, name, reraise=False):
         try:
-            return self.k8s_api.read_namespaced_pod(name, self.namespace)
+            return self.k8s_api.read_namespaced_pod(name=name, namespace=self.namespace)
+        except ApiException as e:
+            if reraise:
+                raise PolyaxonK8SError(e)
+            return None
+
+    def get_custom_object(self, name, group, version, plural, reraise=False):
+        try:
+            return self.k8s_custom_object_api.get_namespaced_custom_object(name=name,
+                                                                           group=group,
+                                                                           version=version,
+                                                                           plural=plural,
+                                                                           namespace=self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -279,7 +363,7 @@ class K8SManager(object):
 
     def get_deployment(self, name, reraise=False):
         try:
-            return self.k8s_beta_api.read_namespaced_deployment(name, self.namespace)
+            return self.k8s_beta_api.read_namespaced_deployment(name=name, namespace=self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -287,7 +371,7 @@ class K8SManager(object):
 
     def get_volume(self, name, reraise=False):
         try:
-            return self.k8s_api.read_persistent_volume(name)
+            return self.k8s_api.read_persistent_volume(name=name)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -295,7 +379,8 @@ class K8SManager(object):
 
     def get_volume_claim(self, name, reraise=False):
         try:
-            return self.k8s_api.read_namespaced_persistent_volume_claim(name, self.namespace)
+            return self.k8s_api.read_namespaced_persistent_volume_claim(name=name,
+                                                                        namespace=self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -303,7 +388,8 @@ class K8SManager(object):
 
     def get_ingress(self, name, reraise=False):
         try:
-            return self.k8s_beta_api.read_namespaced_ingress(name, self.namespace)
+            return self.k8s_beta_api.read_namespaced_ingress(name=name,
+                                                             namespace=self.namespace)
         except ApiException as e:
             if reraise:
                 raise PolyaxonK8SError(e)
@@ -312,12 +398,13 @@ class K8SManager(object):
     def delete_config_map(self, name, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_config_map(name, self.namespace)
+            self.k8s_api.read_namespaced_config_map(name=name,
+                                                    namespace=self.namespace)
             found = True
             self.k8s_api.delete_namespaced_config_map(
-                name,
-                self.namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+                name=name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
             logger.debug('Config map `{}` Deleted'.format(name))
         except ApiException as e:
             if found:
@@ -330,12 +417,12 @@ class K8SManager(object):
     def delete_secret(self, name, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_secret(name, self.namespace)
+            self.k8s_api.read_namespaced_secret(name=name, namespace=self.namespace)
             found = True
             self.k8s_api.delete_namespaced_secret(
-                name,
-                self.namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+                name=name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
             logger.debug('secret `{}` Deleted'.format(name))
         except ApiException as e:
             if found:
@@ -348,12 +435,12 @@ class K8SManager(object):
     def delete_service(self, name, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_service(name, self.namespace)
+            self.k8s_api.read_namespaced_service(name=name, namespace=self.namespace)
             found = True
             self.k8s_api.delete_namespaced_service(
-                name,
-                self.namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+                name=name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
             logger.debug('Service `{}` deleted'.format(name))
         except ApiException as e:
             if found:
@@ -366,12 +453,12 @@ class K8SManager(object):
     def delete_pod(self, name, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_pod(name, self.namespace)
+            self.k8s_api.read_namespaced_pod(name=name, namespace=self.namespace)
             found = True
             self.k8s_api.delete_namespaced_pod(
-                name,
-                self.namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+                name=name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
             logger.debug('Pod `{}` deleted'.format(name))
         except ApiException as e:
             if found:
@@ -381,16 +468,41 @@ class K8SManager(object):
             else:
                 logger.debug('Pod `{}` was not found'.format(name))
 
+    def delete_custom_object(self, name, group, version, plural, reraise=False):
+        found = False
+        try:
+            self.k8s_custom_object_api.get_namespaced_custom_object(name=name,
+                                                                    group=group,
+                                                                    version=version,
+                                                                    plural=plural,
+                                                                    namespace=self.namespace)
+            found = True
+            self.k8s_custom_object_api.delete_namespaced_custom_object(
+                name=name,
+                group=group,
+                version=version,
+                plural=plural,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions())
+            logger.debug('Custom object `{}` deleted'.format(name))
+        except ApiException as e:
+            if found:
+                logger.error('Could not delete custom object `{}`'.format(name))
+                if reraise:
+                    raise PolyaxonK8SError(e)
+            else:
+                logger.debug('Custom object `{}` was not found'.format(name))
+
     def delete_deployment(self, name, reraise=False):
         found = False
         try:
-            self.k8s_beta_api.read_namespaced_deployment(name, self.namespace)
+            self.k8s_beta_api.read_namespaced_deployment(name=name, namespace=self.namespace)
             found = True
             self.k8s_beta_api.delete_namespaced_deployment(
-                name,
-                self.namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1_BETA1,
-                                       propagation_policy='Foreground'))
+                name=name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1_BETA1,
+                                            propagation_policy='Foreground'))
             logger.debug('Deployment `{}` deleted'.format(name))
         except ApiException as e:
             if found:
@@ -403,11 +515,11 @@ class K8SManager(object):
     def delete_volume(self, name, reraise=False):
         found = False
         try:
-            self.k8s_api.read_persistent_volume(name)
+            self.k8s_api.read_persistent_volume(name=name)
             found = True
             self.k8s_api.delete_persistent_volume(
-                name,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+                name=name,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
             logger.debug('Volume `{}` Deleted'.format(name))
         except ApiException as e:
             if found:
@@ -420,12 +532,13 @@ class K8SManager(object):
     def delete_volume_claim(self, name, reraise=False):
         found = False
         try:
-            self.k8s_api.read_namespaced_persistent_volume_claim(name, self.namespace)
+            self.k8s_api.read_namespaced_persistent_volume_claim(name=name,
+                                                                 namespace=self.namespace)
             found = True
             self.k8s_api.delete_namespaced_persistent_volume_claim(
-                name,
-                self.namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
+                name=name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1))
             logger.debug('Volume claim `{}` Deleted'.format(name))
         except ApiException as e:
             if found:
@@ -438,13 +551,13 @@ class K8SManager(object):
     def delete_ingress(self, name, reraise=False):
         found = False
         try:
-            self.k8s_beta_api.read_namespaced_ingress(name, self.namespace)
+            self.k8s_beta_api.read_namespaced_ingress(name=name, namespace=self.namespace)
             found = True
             self.k8s_beta_api.delete_namespaced_ingress(
-                name,
-                self.namespace,
-                client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1_BETA1,
-                                       propagation_policy='Foreground'))
+                name=name,
+                namespace=self.namespace,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1_BETA1,
+                                            propagation_policy='Foreground'))
             logger.debug('Ingress `{}` deleted'.format(name))
         except ApiException as e:
             if found:
