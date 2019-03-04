@@ -72,13 +72,11 @@ class K8SManager(object):
                             group,
                             version,
                             plural,
-                            include_uninitialized=True,
                             reraise=False):
         return self._list_namespace_resource(
             labels=labels,
             resource_api=self.k8s_custom_object_api.list_namespaced_custom_object,
             reraise=reraise,
-            include_uninitialized=include_uninitialized,
             group=group,
             version=version,
             plural=plural)
