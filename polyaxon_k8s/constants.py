@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 K8S_API_VERSION_V1 = 'v1'
 K8S_API_VERSION_NETWORKING_V1_BETA1 = 'networking.k8s.io/v1beta1'
+K8S_API_VERSION_EXTENSIONS_V1_BETA1 = "extensions/v1beta1"
 K8S_API_VERSION_BATCH_V1 = 'batch/v1'
 K8S_API_VERSION_APPS_V1 = 'apps/v1'
 K8S_PERSISTENT_VOLUME_KIND = 'PersistentVolume'
