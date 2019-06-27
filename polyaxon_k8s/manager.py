@@ -279,14 +279,14 @@ class K8SManager(object):
 
     def create_deployment(self, name, body):
         resp = self.k8s_beta_api.create_namespaced_deployment(namespace=self.namespace, body=body)
-        logger.info('Deployment `{}` was created'.format(name))
+        logger.debug('Deployment `{}` was created'.format(name))
         return resp
 
     def update_deployment(self, name, body):
         resp = self.k8s_beta_api.patch_namespaced_deployment(name=name,
                                                              namespace=self.namespace,
                                                              body=body)
-        logger.info('Deployment `{}` was patched'.format(name))
+        logger.debug('Deployment `{}` was patched'.format(name))
         return resp
 
     def create_or_update_deployment(self, name, body, reraise=False):
@@ -294,7 +294,7 @@ class K8SManager(object):
             return self.create_deployment(name=name, body=body), True
         except ApiException:
             try:
-                self.update_deployment(name=name, body=body), False
+                return self.update_deployment(name=name, body=body), False
             except ApiException as e:
                 if reraise:
                     raise PolyaxonK8SError(e)
