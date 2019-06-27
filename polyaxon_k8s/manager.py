@@ -499,7 +499,7 @@ class K8SManager(object):
             self.k8s_beta_api.delete_namespaced_deployment(
                 name=name,
                 namespace=self.namespace,
-                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1_BETA1,
+                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_APPS_V1,
                                             propagation_policy='Foreground'))
             logger.debug('Deployment `{}` deleted'.format(name))
         except ApiException as e:
@@ -554,8 +554,9 @@ class K8SManager(object):
             self.k8s_beta_api.delete_namespaced_ingress(
                 name=name,
                 namespace=self.namespace,
-                body=client.V1DeleteOptions(api_version=constants.K8S_API_VERSION_V1_BETA1,
-                                            propagation_policy='Foreground'))
+                body=client.V1DeleteOptions(
+                    api_version=constants.K8S_API_VERSION_NETWORKING_V1_BETA1,
+                    propagation_policy='Foreground'))
             logger.debug('Ingress `{}` deleted'.format(name))
         except ApiException as e:
             if found:
