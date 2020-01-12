@@ -26,7 +26,7 @@ class PyTest(TestCommand):
 
 setup(
     name="polyaxon-k8s",
-    version="0.4.8",
+    version="0.4.9",
     description="Polyaxon Kubernetes managers, utils, and resources.",
     long_description=read_readme(),
     maintainer="Mourad Mourafiq",
@@ -49,7 +49,7 @@ setup(
         "reinforcement-learning",
         "kubernetes",
     ],
-    install_requires=["kubernetes==10.0.1", "PyYAML>=5.1", "six==1.12.0"],
+    install_requires=["kubernetes==10.0.1", "PyYAML>=5.1", "six>=1.12.0"],
     classifiers=[
         "Programming Language :: Python",
         "Operating System :: OS Independent",
