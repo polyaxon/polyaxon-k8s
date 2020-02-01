@@ -22,7 +22,8 @@ class K8SManager(object):
 
         self.k8s_api = client.CoreV1Api(api_client)
         self.k8s_batch_api = client.BatchV1Api(api_client)
-        self.k8s_beta_api = client.ExtensionsV1beta1Api(api_client)
+        self.k8s_apps_api = client.AppsV1Api(api_client)
+        self.networking_v1_beta1_api = client.NetworkingV1beta1Api(api_client)
         self.k8s_custom_object_api = client.CustomObjectsApi()
         self.k8s_version_api = client.VersionApi(api_client)
         self.namespace = namespace
@@ -97,14 +98,14 @@ class K8SManager(object):
     def list_deployments(self, labels, reraise=False):
         return self._list_namespace_resource(
             labels=labels,
-            resource_api=self.k8s_beta_api.list_namespaced_deployment,
+            resource_api=self.k8s_apps_api.list_namespaced_deployment,
             reraise=reraise,
         )
 
     def list_ingresses(self, labels, reraise=False):
         return self._list_namespace_resource(
             labels=labels,
-            resource_api=self.k8s_beta_api.list_namespaced_ingress,
+            resource_api=self.networking_v1_beta1_api.list_namespaced_ingress,
             reraise=reraise,
         )
 
@@ -298,14 +299,14 @@ class K8SManager(object):
                     logger.error("K8S error: {}".format(e))
 
     def create_deployment(self, name, body):
-        resp = self.k8s_beta_api.create_namespaced_deployment(
+        resp = self.k8s_apps_api.create_namespaced_deployment(
             namespace=self.namespace, body=body
         )
         logger.debug("Deployment `{}` was created".format(name))
         return resp
 
     def update_deployment(self, name, body):
-        resp = self.k8s_beta_api.patch_namespaced_deployment(
+        resp = self.k8s_apps_api.patch_namespaced_deployment(
             name=name, namespace=self.namespace, body=body
         )
         logger.debug("Deployment `{}` was patched".format(name))
@@ -372,14 +373,14 @@ class K8SManager(object):
                     logger.error("K8S error: {}".format(e))
 
     def create_ingress(self, name, body):
-        resp = self.k8s_beta_api.create_namespaced_ingress(
+        resp = self.networking_v1_beta1_api.create_namespaced_ingress(
             namespace=self.namespace, body=body
         )
         logger.debug("ingress `{}` was created".format(name))
         return resp
 
     def update_ingress(self, name, body):
-        resp = self.k8s_beta_api.patch_namespaced_ingress(
+        resp = self.networking_v1_beta1_api.patch_namespaced_ingress(
             name=name, namespace=self.namespace, body=body
         )
         logger.debug("Ingress `{}` was patched".format(name))
@@ -461,7 +462,7 @@ class K8SManager(object):
 
     def get_deployment(self, name, reraise=False):
         try:
-            return self.k8s_beta_api.read_namespaced_deployment(
+            return self.k8s_apps_api.read_namespaced_deployment(
                 name=name, namespace=self.namespace
             )
         except ApiException as e:
@@ -489,7 +490,7 @@ class K8SManager(object):
 
     def get_ingress(self, name, reraise=False):
         try:
-            return self.k8s_beta_api.read_namespaced_ingress(
+            return self.networking_v1_beta1_api.read_namespaced_ingress(
                 name=name, namespace=self.namespace
             )
         except ApiException as e:
@@ -586,7 +587,7 @@ class K8SManager(object):
 
     def delete_deployment(self, name, reraise=False):
         try:
-            self.k8s_beta_api.delete_namespaced_deployment(
+            self.k8s_apps_api.delete_namespaced_deployment(
                 name=name,
                 namespace=self.namespace,
                 body=client.V1DeleteOptions(
@@ -630,7 +631,7 @@ class K8SManager(object):
 
     def delete_ingress(self, name, reraise=False):
         try:
-            self.k8s_beta_api.delete_namespaced_ingress(
+            self.networking_v1_beta1_api.delete_namespaced_ingress(
                 name=name,
                 namespace=self.namespace,
                 body=client.V1DeleteOptions(
