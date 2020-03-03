@@ -18,5 +18,4 @@ class TestPolyaxonK8sManager(TestCase):
         k8s_manager = K8SManager(k8s_config=self.config)
 
         assert isinstance(k8s_manager.k8s_api, client.CoreV1Api)
-        assert isinstance(k8s_manager.k8s_beta_api, client.ExtensionsV1beta1Api)
         assert isinstance(k8s_manager.k8s_version_api, client.VersionApi)
